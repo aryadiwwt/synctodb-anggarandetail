@@ -1,0 +1,43 @@
+# ## File Konfigurasi & Kredensial ##
+# Jangan pernah mengirim file yang berisi password, token, atau kunci API ke Git.
+.env
+*.env
+config.toml
+config.yaml
+config.json
+
+# ## File Biner & Hasil Kompilasi ##
+# Abaikan hasil kompilasi. Ini harus dibuat di setiap mesin, bukan disimpan di Git.
+*.exe
+*.dll
+*.so
+*.out
+# Nama biner default sesuai nama direktori proyek
+golang-service
+
+# ## Direktori Vendor ##
+# Abaikan direktori vendor jika Anda menggunakan Go Modules.
+# File go.mod dan go.sum sudah cukup untuk me-restore dependensi.
+vendor/
+
+# ## File Sistem Operasi ##
+# Abaikan file sistem yang dibuat otomatis oleh macOS, Windows, dan Linux.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ## File Log & Profiling ##
+# Abaikan file log dan hasil profiling.
+*.log
+*.prof
+*.pprof
+
+# ## File Editor & IDE ##
+# Abaikan direktori dan file konfigurasi spesifik untuk lingkungan pengembangan Anda.
+# Visual Studio Code
+.vscode/
+# GoLand / JetBrains
+.idea/
+# Vim
+*.swp
+*.swo

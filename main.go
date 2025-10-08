@@ -56,7 +56,7 @@ func main() {
 	// ---------------------------------------------
 	// HTTP Client - dikonfigurasi sekali dan di-inject
 	httpClient := &http.Client{
-		Timeout: 90 * time.Second,
+		Timeout: 180 * time.Second,
 	}
 
 	// 3. Create Concrete Implementations

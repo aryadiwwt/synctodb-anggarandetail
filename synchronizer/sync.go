@@ -28,7 +28,7 @@ func NewAnggaranDetailSynchronizer(f fetcher.Fetcher, s storer.Storer, l *log.Lo
 
 // Synchronize mengurutkan alur kerja, sekarang dengan langkah transformasi.
 func (s *AnggaranDetailSynchronizer) Synchronize(ctx context.Context) error {
-	s.log.Println("Starting output detail synchronization...")
+	s.log.Println("Starting Anggaran detail synchronization...")
 
 	// 1. FETCH: Ambil data mentah dari API
 	details, err := s.fetcher.FetchAnggaranDetails(ctx)

@@ -40,7 +40,7 @@ const (
             :jenis, :nama_jenis, :obyek, :nama_obyek, :anggaran1, :anggaran2,
             :realisasi1, :realisasi2
         )
-        ON CONFLICT (kd_prov, kd_kec, kd_desa, id_keg, akun, obyek, tahun) DO UPDATE SET
+        ON CONFLICT (kd_prov, kd_kab, kd_kec, kd_desa, id_keg, kd_subrinci, akun, obyek, tahun) DO UPDATE SET
             anggaran1 = EXCLUDED.anggaran1,
             anggaran2 = EXCLUDED.anggaran2,
             realisasi1 = EXCLUDED.realisasi1,

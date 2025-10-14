@@ -63,7 +63,6 @@ func main() {
 	// HTTP Client - dikonfigurasi sekali dan di-inject
 	httpClient := &http.Client{
 		Timeout: 300 * time.Second,
-		Timeout: 300 * time.Second,
 	}
 	// Proses input dari flag
 	var daftarProvinsi []string

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/aryadiwwt/synctodb-anggarandetail/domain"
 	"github.com/aryadiwwt/synctodb-anggarandetail/fetcher"
@@ -26,38 +27,60 @@ func NewAnggaranDetailSynchronizer(f fetcher.Fetcher, s storer.Storer, l *log.Lo
 	}
 }
 
-// Synchronize mengurutkan alur kerja, sekarang dengan langkah transformasi.
-func (s *AnggaranDetailSynchronizer) Synchronize(ctx context.Context) error {
-	s.log.Println("Starting Anggaran detail synchronization...")
+func (s *AnggaranDetailSynchronizer) Synchronize(ctx context.Context, kodeProvinsi []string) error {
+	s.log.Println("Starting output detail synchronization...")
 
-	// 1. FETCH: Ambil data mentah dari API
-	details, err := s.fetcher.FetchAnggaranDetails(ctx)
+	daftarWilayah, err := s.storer.GetWilayahByProvinsi(ctx, kodeProvinsi)
 	if err != nil {
-		return fmt.Errorf("synchronization failed during fetch phase: %w", err)
+		s.log.Fatalf("Gagal mendapatkan daftar wilayah: %v", err)
 	}
-	s.log.Printf("Successfully fetched %d output details.", len(details))
 
-	if len(details) == 0 {
-		s.log.Println("No new data to synchronize.")
+	if len(daftarWilayah) == 0 {
+		s.log.Println("Tidak ada data wilayah yang ditemukan untuk diproses. Selesai.")
 		return nil
 	}
 
-	// 2. TRANSFORM: Ubah data sesuai aturan bisnis
-	s.log.Println("Transforming data...")
-	transformedDetails := transformDetails(details)
-	s.log.Println("Data transformation complete.")
+	s.log.Printf("Akan memproses data untuk %d kabupaten/kota...", len(daftarWilayah))
 
-	// 3. STORE: Simpan data yang sudah ditransformasi
-	if err := s.storer.StoreAnggaranDetails(ctx, transformedDetails); err != nil {
-		return fmt.Errorf("synchronization failed during store phase: %w", err)
+	// Lakukan loop untuk setiap wilayah
+	for _, wilayah := range daftarWilayah {
+		s.log.Printf("=== Memulai proses untuk Provinsi: %s, Kabupaten: %s ===", wilayah.KodeProvinsi, wilayah.KodeKabupaten)
+
+		// Fetch data untuk wilayah saat ini
+		// Perhatikan bagaimana kita sekarang memberikan kode wilayah sebagai argumen
+		details, err := s.fetcher.FetchAnggaranDetails(ctx, wilayah.KodeProvinsi, wilayah.KodeKabupaten)
+		if err != nil {
+			s.log.Printf("ERROR saat mengambil data untuk Prov %s Kab %s: %v. Melanjutkan ke wilayah berikutnya.", wilayah.KodeProvinsi, wilayah.KodeKabupaten, err)
+			continue // Lanjut ke iterasi berikutnya jika ada error
+		}
+
+		if len(details) == 0 {
+			s.log.Println("Tidak ada data untuk wilayah ini.")
+			continue
+		}
+
+		// Transformasi data
+		s.log.Println("Transforming data...")
+		transformedDetails := transformDetails(details)
+		s.log.Println("Data transformation complete.")
+
+		// Simpan data ke database (menggunakan batch processing)
+		if err := s.storer.StoreAnggaranDetails(ctx, transformedDetails); err != nil {
+			s.log.Printf("ERROR saat menyimpan data untuk Prov %s Kab %s: %v", wilayah.KodeProvinsi, wilayah.KodeKabupaten, err)
+			continue
+		}
+
+		s.log.Printf("=== Selesai memproses untuk Provinsi: %s, Kabupaten: %s. Total %d data disimpan. ===", wilayah.KodeProvinsi, wilayah.KodeKabupaten, len(details))
+
+		// Opsional: Beri jeda singkat antar request untuk tidak membebani API
+		time.Sleep(5 * time.Second)
 	}
-	s.log.Println("Successfully stored transformed data to the database.")
 
-	s.log.Println("Synchronization finished successfully.")
+	s.log.Println("Semua proses sinkronisasi untuk seluruh wilayah telah selesai.")
 	return nil
 }
 
-// FUNGSI BARU: transformDetails berisi logika untuk mengubah data
+// transformDetails berisi logika untuk mengubah data
 func transformDetails(details []domain.AnggaranDetail) []domain.AnggaranDetail {
 	// Loop melalui setiap record dan modifikasi nilainya
 	for i := range details {

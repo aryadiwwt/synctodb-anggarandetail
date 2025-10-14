@@ -2,6 +2,8 @@ package storer
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/aryadiwwt/synctodb-anggarandetail/domain"
 	customErrors "github.com/aryadiwwt/synctodb-anggarandetail/errors"
@@ -9,9 +11,67 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type Wilayah struct {
+	KodeProvinsi  string `db:"provinsi_id"`
+	KodeKabupaten string `db:"kota_id"`
+}
+
 // Storer mendefinisikan kontrak untuk menyimpan data post.
 type Storer interface {
 	StoreAnggaranDetails(ctx context.Context, details []domain.AnggaranDetail) error
+	GetWilayahByProvinsi(ctx context.Context, kodeProvinsi []string) ([]Wilayah, error)
+}
+
+// Implementasi fungsi untuk memfilter berdasarkan kd_prov
+func (s *dbStorer) GetWilayahByProvinsi(ctx context.Context, kodeProvinsi []string) ([]Wilayah, error) {
+	var wilayah []Wilayah
+
+	// Query dasar
+	baseQuery := `SELECT provinsi_id, kota_id FROM master_kota`
+
+	var args []interface{}
+
+	// Jika daftar provinsi diberikan, tambahkan klausa WHERE IN
+	if len(kodeProvinsi) > 0 {
+		baseQuery += ` WHERE provinsi_id IN (?)`
+		args = append(args, kodeProvinsi)
+	}
+
+	baseQuery += ` ORDER BY provinsi_id, kota_id`
+
+	// sqlx.In secara aman akan mengubah query (?) menjadi ($1, $2, ...)
+	// dan menyesuaikan argumennya. Ini cara aman untuk klausa IN.
+	query, args, err := sqlx.In(baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("gagal membuat query IN: %w", err)
+	}
+
+	// Rebind query agar sesuai dengan placeholder PostgreSQL ($1, $2)
+	query = s.db.Rebind(query)
+
+	err = s.db.SelectContext(ctx, &wilayah, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil data wilayah yang difilter: %w", err)
+	}
+
+	// Lakukan loop untuk memformat kode kabupaten setelah data didapat
+	for i := range wilayah {
+		// Ambil kode kabupaten mentah
+		kodeKabStr := wilayah[i].KodeKabupaten
+
+		// Ubah string menjadi integer
+		num, err := strconv.Atoi(kodeKabStr)
+		if err != nil {
+			// Jika gagal (misal format tidak standar), biarkan apa adanya dan beri peringatan
+			fmt.Printf("Peringatan: Format kd_kab '%s' tidak valid, tidak diformat.\n", kodeKabStr)
+			continue
+		}
+
+		// Format integer menjadi string 2 digit dengan awalan nol
+		wilayah[i].KodeKabupaten = fmt.Sprintf("%02d", num)
+	}
+
+	return wilayah, nil
 }
 
 type dbStorer struct {

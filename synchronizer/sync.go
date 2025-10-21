@@ -28,7 +28,7 @@ func NewAnggaranDetailSynchronizer(f fetcher.Fetcher, s storer.Storer, l *log.Lo
 }
 
 func (s *AnggaranDetailSynchronizer) Synchronize(ctx context.Context, kodeProvinsi []string, startKabupaten string) error {
-	s.log.Println("Starting output detail synchronization...")
+	s.log.Println("Starting Anggaran detail synchronization...")
 
 	daftarWilayah, err := s.storer.GetWilayahByProvinsi(ctx, kodeProvinsi)
 	if err != nil {
